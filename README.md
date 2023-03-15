@@ -1,4 +1,4 @@
-# MultiplicativeRandomCascade
+# disaggMRC
 
 
 Micro-canonical Random Cascade is a method for temporal disaggregation of precipitation time series 
