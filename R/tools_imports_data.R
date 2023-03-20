@@ -1,5 +1,3 @@
-#' World Health Organization TB data
-#'
 #'A fictive 10 minute resolution time series of precipitation 
 #'
 #' @format ## `data_test_MRC`

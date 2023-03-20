@@ -3,7 +3,7 @@
 \docType{data}
 \name{data_test_MRC}
 \alias{data_test_MRC}
-\title{World Health Organization TB data}
+\title{A fictive 10 minute resolution time series of precipitation}
 \format{
 ## `data_test_MRC`
 A data frame of two columns and 1577952 rows:

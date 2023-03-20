@@ -2,7 +2,7 @@ Package: disaggMRC
 Type: Package
 Date: 2023-02-23
 License: GPL-3
-Title:  Temporal disaggregation of precipitation time series with Micro-canonical Random Cascade method
+Title: Temporal disaggregation of precipitation time series with Micro-canonical Random Cascade method
 Version: 1.0.0
 Authors@R: c(person("Kaltrina","Maloku",role = c("aut", "cre"),email="kaltrina.maloku@univ-grenoble-alpes.fr"))
 Author: Kaltrina Maloku [aut, cre]
@@ -21,5 +21,7 @@ Depends: R (>= 2.10)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
-
-
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

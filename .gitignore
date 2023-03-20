@@ -3,3 +3,6 @@
 .RHistory
 .RData
 .Rbuildignore
+inst/doc
+/doc/
+/Meta/

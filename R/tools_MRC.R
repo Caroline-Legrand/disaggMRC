@@ -614,7 +614,7 @@ estimate_params_MRC = function(vecPrecip,
   }
   
   #  ======================== Start aggregating  ========================
-  i_aggLevel = aggLevels[1]
+  
   DF_weights_obs = NULL
   for(i_aggLevel in aggLevels){
     # fixed sum of the previous aggregation level
@@ -710,7 +710,7 @@ estimate_params_MRC = function(vecPrecip,
     dplyr::select(Season, param, value, aggLevel, Intensity, zIndex)
   
   #  ======================== Asymmetry parameters ======================== 
-  # estimate the mean of postive weight distribution,
+  # estimate the mean of positive weight distribution,
   # for asymmetry model of weight distrbution
   # by season and z index class
   mean_estimates_by_z_index = DF_weights_obs_pos %>% 

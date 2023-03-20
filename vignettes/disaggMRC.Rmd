@@ -1,0 +1,116 @@
+---
+title: "disaggMRC"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{disaggMRC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  out.width = "80%", 
+  fig.fullwidth = TRUE, 
+  fig.width = 7,
+  fig.height = 5,
+  fig.align = 'center',
+  dpi = 200
+)
+```
+
+```{r setup}
+library(disaggMRC)
+```
+
+A precipitation time series with 10 minute resolution in order to apply examples. 
+```{r}
+head(data_test_MRC)
+```
+
+* DJF = December, January, February,
+* MAM = March, April, May, 
+* JJA = June, July, Autumn,
+* SON = September, October, November. 
+
+## Parameter estimation
+Estimate scaling parameters of Model A. MRC parameters are assumed to be dependent on precipitation intensity and temporal aggregation level. It returns a data frame with estimated for each season.
+
+Parameters of Model A+ are also returned.
+```{r, eval = F}
+Model_A = get_scaling_params_Intensity_aggLevel(vecPrecip = data_test_MRC$obs,
+                                                vecDates = data_test_MRC$date)
+
+# parameters 
+Model_A$params
+```
+The function `get_scaling_params_Intensity_aggLevel` returns also a list of ggplot plots. Each ggplot shows the scaling models as fitted on MRC parameters.
+```{r, eval = F}
+# Px 
+Model_A$fig_plots$Px_aggLevel_intensity
+# Scaled alpha
+Model_A$fig_plots$Alpha_star_aggLevel_intensity
+```
+Estimate scaling parameters of Model B. MRC parameters are assumed to be dependent on precipitation intensity. It returns a data frame with estimated for each season.
+```{r, eval = F}
+Model_B = get_scaling_params_Intensity(vecPrecip = data_test_MRC$obs,
+                                       vecDates = data_test_MRC$date)
+# scaling parameters
+Model_B$params
+```
+Fits of Model B
+```{r,eval = F}
+# Px 
+Model_B$fig_plots$Px_intensity
+# Alpha
+Model_B$fig_plots$Alpha_intensity
+```
+
+## Disaggregation
+
+Obtain a coarse resolution time series that will be used as target time series to be disaggrgeated. 
+```{r, eval = F}
+# a vector of dates, a date per day 
+vecDates_target = unique(as.Date(data_test_MRC$date))
+# get 1280 min indices 
+indices_1280min = get_indices_center_1280(length(vecDates_target))
+# from 10 minutes time series to "daily - 1280 min" accumulated time series 
+vecPrecip_target = sum_fixed_window(x = data_test_MRC$obs[indices_1280min],
+                                    k = 128)
+```
+
+Disaggregate following Model A
+```{r, eval = F}
+Moldel_A_disagg = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = vecPrecip_target,
+                                                             vecDates_target = vecDates_target,
+                                                             params_scaling = Model_A$params,
+                                                             res_coarse_aggLevel = 1280,
+                                                             res_fine_aggLevel = 40,
+                                                             nb_scenarios = 10,
+                                                             asymmetry_option = F)
+head(Moldel_A_disagg)
+```
+
+Disaggregate following Model B+
+```{r, eval = F}
+Moldel_A_disagg_asymm = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = vecPrecip_target,
+                                                             vecDates_target = vecDates_target,
+                                                             params_scaling = Model_A$params,
+                                                             res_coarse_aggLevel = 1280,
+                                                             res_fine_aggLevel = 40,
+                                                             nb_scenarios = 10,
+                                                             asymmetry_option = T)
+```
+
+
+Disaggregate following Model B
+```{r, eval = F}
+Moldel_B_disagg = disaggregate_precip_MRC_Intensity(vecPrecip_target = vecPrecip_target,
+                                                    vecDates_target = vecDates_target,
+                                                    params_scaling = Model_B$params,
+                                                    res_coarse_aggLevel = 1280,
+                                                    res_fine_aggLevel = 40,
+                                                    nb_scenarios = 10,
+                                                    asymmetry_option = F)
+```
