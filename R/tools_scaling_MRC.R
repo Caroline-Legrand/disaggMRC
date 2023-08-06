@@ -66,13 +66,13 @@ get_scaling_params_Intensity_aggLevel = function(vecPrecip,
   
   # Second stage: estimate scaling params of mu and sigma over temporal scales, fit linear models
   fit_intermittency_mu = fit_intermittency_mu_sigma %>% group_by(Season) %>% dplyr::select(-Sigma) %>%
-    dplyr::do(fit = robustbase::nlrob(mu~(a_mu*log(aggLevel )+b_mu), 
+    dplyr::do(fit = robustbase::nlrob(mu~(a_mu*log(aggLevel/1440)+b_mu), 
                                       start = list(a_mu = a_start, b_mu = b_start), 
                                       data = .data, maxit = 2000)) %>%  
     mutate(a_mu = fit$coefficients[1],b_mu = fit$coefficients[2]) %>% dplyr::select(-fit)
   
   fit_intermittency_sigma = fit_intermittency_mu_sigma %>% group_by(Season) %>% dplyr::select(-mu) %>%
-    dplyr::do(fit = robustbase::nlrob(Sigma~(a_sigma*log(aggLevel )+b_sigma), 
+    dplyr::do(fit = robustbase::nlrob(Sigma~(a_sigma*log(aggLevel/1440)+b_sigma), 
                                       start = list(a_sigma = a_start, b_sigma = b_start), 
                                       data = .data, maxit = 2000)) %>%
     mutate(a_sigma = fit$coefficients[1],b_sigma = fit$coefficients[2]) %>%  dplyr::select(-fit)
@@ -86,7 +86,7 @@ get_scaling_params_Intensity_aggLevel = function(vecPrecip,
   # fit scaling model over temporal aggregation level 
   fit_alpha_aggLevel = params_MRC$alpha_aggLevel %>% group_by(Season) %>% 
     dplyr::do(fit = robustbase::nlrob(value~get_alpha_aggLevel(alpha0 = alpha0, H = H, 
-                                                               res_aggLevel = aggLevel ),
+                                                               res_aggLevel = aggLevel/1440),
                                       start = list(alpha0 = 1, H = -1), maxit = 2000, data = .data)) %>%
     mutate(alpha0 = fit$coefficients[1], H = fit$coefficients[2]) %>% dplyr::select(-fit)
   
@@ -125,7 +125,7 @@ get_scaling_params_Intensity_aggLevel = function(vecPrecip,
   # predict values based on the parameters of the model
   predict_Px = left_join(expand.grid(Intensity = vecIntensity, Season = vec.season.char, aggLevel = aggLevels), 
                          params_px, by = "Season") %>%
-    mutate(Px = get_Px_Intensity_aggLevel(Intensity,aggLevel ,a_mu,b_mu,a_sigma,b_sigma))
+    mutate(Px = get_Px_Intensity_aggLevel(Intensity,aggLevel/1440,a_mu,b_mu,a_sigma,b_sigma))
   
   # Px obs  
   ggplot_px_intensity_time = ggplot(data = params_MRC$px_aggLevel_Intensity)+
@@ -146,8 +146,8 @@ get_scaling_params_Intensity_aggLevel = function(vecPrecip,
   
   int_pars_px = left_join(fit_intermittency_mu_sigma, params_px,
                           by = "Season") %>% 
-    mutate(pred_mu = a_mu*log(aggLevel )+b_mu,
-           pred_sigma = a_sigma*log(aggLevel )+b_sigma)
+    mutate(pred_mu = a_mu*log(aggLevel/1440)+b_mu,
+           pred_sigma = a_sigma*log(aggLevel/1440)+b_sigma)
   
   ggplot_px_params_aggLevel = ggplot(int_pars_px)+
     geom_line(aes(x = aggLevel, y = pred_mu))+
@@ -170,7 +170,7 @@ get_scaling_params_Intensity_aggLevel = function(vecPrecip,
   # predict alpha star values by the model 
   predict_alpha = left_join(expand.grid(aggLevel = aggLevels, Season = vec.season.char), 
                             params_alpha, by = "Season") %>%
-    mutate(alpha = get_alpha_aggLevel(alpha0, H, res_aggLevel = aggLevel ))
+    mutate(alpha = get_alpha_aggLevel(alpha0, H, res_aggLevel = aggLevel/1440))
   
   # alpha 
   ggplot_alpha_ts = ggplot(data = params_MRC$alpha_aggLevel)+
@@ -333,7 +333,7 @@ get_scaling_params_Intensity = function(vecPrecip,
   
   # ======================= Px model =======================
   
-  # First stage: estimate params of mu and sigma for each temporal scales 
+  # Estimate paramters of mu and sigma 
   fit_intermittency_mu_sigma = params_MRC$px_aggLevel_Intensity %>% group_by(Season) %>% 
     dplyr::do(fit = robustbase::nlrob(value~get_Px_Intensity(Intensity = Intensity, 
                                                              mu = mu, Sigma = Sigma),
@@ -539,8 +539,8 @@ disaggregate_precip_MRC_Intensity_aggLevel = function(vecPrecip_target,
       # from intesities and scaling parameters, get MRC parameters 
       # rnd_unif is random vector used for disaggregation 
       data_current_params = data_current_params %>%
-        mutate(Px = get_Px_Intensity_aggLevel(Intensity,i_aggLevel, a_mu,b_mu,a_sigma,b_sigma),
-               alpha = get_alpha_aggLevel(alpha0, H, res_aggLevel = i_aggLevel)*
+        mutate(Px = get_Px_Intensity_aggLevel(Intensity,i_aggLevel/1440, a_mu,b_mu,a_sigma,b_sigma),
+               alpha = get_alpha_aggLevel(alpha0, H, res_aggLevel = i_aggLevel/1440)*
                  alpha_star_Intensity(Intensity,c0,c1,c2),
                phi = get_phi_z(z = zIndex, nu = nu),
                m = get_mean_z(z = zIndex, lambda = lambda),
@@ -769,6 +769,8 @@ disaggregate_precip_MRC_Intensity = function(vecPrecip_target,
     
     # add to the matrix of scenarios
     data_precip = cbind(data_precip, vecPrecip_aggLevel_current)
+    
+    # name the scenario
     colnames(data_precip)[i_scenario] = paste0("result.",i_scenario)
   }
   

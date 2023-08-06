@@ -51,7 +51,7 @@ get_intensity_class_id = function(x, I_min = 0.1,res_aggLevel){
   # find n such that I_min*2^(n-1) <= x < I_min*2^n
   n_int_class = floor(log(x/I_min)/log(2))+1
   
-  # the maximal classes of intensities 
+  # the maximal number of intensity classes 
   max_int_class = 15
   
   # at hourly resolution we have 
@@ -576,7 +576,7 @@ estimate_params_MRC = function(vecPrecip,
   }
   
   # check if aggregation levels are correct 
-  if(!any(round(aggLevels/(2*resVecPrecip)) == aggLevels/(2*resVecPrecip))) stop("aggLevels must be multiple of 2*resVecPrecip")
+  if(!all(round(aggLevels/(2*resVecPrecip)) == aggLevels/(2*resVecPrecip))) stop("aggLevels must be multiple of 2*resVecPrecip")
   
   # check if the time differences are correct 
   diff_time = difftime(vecDates[2:length(vecDates)], vecDates[1:(length(vecDates)-1)])
