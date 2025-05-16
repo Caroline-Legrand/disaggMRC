@@ -1,27 +1,25 @@
 Package: disaggMRC
 Type: Package
-Date: 2023-02-23
+Date: 2025-05-16
 License: GPL-3
 Title: Temporal disaggregation of precipitation time series with Micro-canonical Random Cascade method
-Version: 1.0.0
-Authors@R: c(person("Kaltrina","Maloku",role = c("aut", "cre"),email="kaltrina.maloku@univ-grenoble-alpes.fr"))
-Author: Kaltrina Maloku [aut, cre]
-Maintainer: Kaltrina Maloku <kaltrina.maloku@univ-grenoble-alpes.fr>
-Imports: RcppRoll, lubridate, stats, dplyr, magrittr, pracma, robustbase, viridis, ggplot2, latex2exp
-Description: Micro-canonical Random Cascade is a method for temporal disaggregation of precipitation time series 
-  from coarse resolution (e.g. daily) to fine resolution (e.g. 30 min). 
-  This package provide tools for parameter estimation of this model, estimation of scaling models, with different options 
-  for dependency, and tools for disaggregation based on these parameters and dependencies. 
-  Possible dependcy options are: precipition intensity, temoral aggregation level and asymmetery of precipitation sequence.
-  Fictive precipition data for a station are also provided, together with examples. 
-  The user is suggested to refer to these papers for more details on the models. 
-  - Maloku, K., Hingray, B., and Evin, G. (2023) <>.
-  - Rupp, D. E., Keim, R. F., Ossiander, M., Brugnach, M., and Selker, J. S. (2009) <https://doi.org/10.1029/2008WR007321>.
-Depends: R (>= 2.10)
+Version: 2.0.0
+Authors@R: c(person("Kaltrina", "Maloku", email="kaltrina.maloku@univ-grenoble-alpes.fr", role = c("aut", "cre")), 
+             person("Caroline", "Legrand", email="caroline.legrand@univ-grenoble-alpes.fr", role = "ctb"))
+Author: Kaltrina Maloku [aut, cre], Caroline Legrand [ctb]
+Maintainer: Caroline Legrand <caroline.legrand@univ-grenoble-alpes.fr>
+Imports: RcppRoll, lubridate, stats, dplyr, magrittr, pracma, robustbase, viridis, ggplot2, latex2exp, egpdIDF
+Description: Micro-canonical Random Cascade is a method for temporal disaggregation of precipitation time series from coarse resolution (e.g. daily) 
+             to fine resolution (e.g. 30 minutes). This package provides tools for parameter estimation of this model, estimation of scaling models, 
+             with different options for dependency, and tools for disaggregation based on these parameters and dependencies. Possible dependency options 
+             are precipitation intensity, temporal aggregation level and precipitation sequence asymmetry. Precipitation data and examples are also 
+             provided. The user is invited to refer to this paper for more details on the models.
+             Maloku, K., Hingray, B., and Evin, G. (2023).
+             Accounting for precipitation asymmetry in a multiplicative random cascade disaggregation model. 
+             Hydrol. Earth Syst. Sci., 27, 3643–3661, https://doi.org/10.5194/hess-27-3643-2023.
+Depends: R (>= 3.5.0)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
-Suggests: 
-    knitr,
-    rmarkdown
-VignetteBuilder: knitr
+RoxygenNote: 7.3.2
+Suggests: rmarkdown, testthat (>= 3.0.0)
+Config/testthat/edition: 3
