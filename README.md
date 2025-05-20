@@ -3,26 +3,23 @@
 
 # disaggMRC
 
-The disaggMRC package provides R scripts for fitting a stochastic
+The disaggMRC package provides R routines for fitting a stochastic
 weather generator and generating sub-daily precipitation time series
-scenarios.
+scenarios. This manual consists of two parts, which can be run
+independently of each other.
 
-First, the parameter estimation of the 4 MRC models A, A+, B and B+
-presented by Maloku et al., 2023 is provided. The data set used for the
-parameter estimation is a 10-minute resolution precipitation data set
-observed at a station in Switzerland. An example of disaggregation by
-the 4 MRC models of the corresponding quasi-daily (1280 minutes)
-observed precipitation time series at the target resolution of 40
-minutes is provided.
+In the first part, we estimate the parameters of the 4 MRC models A, A+,
+B and B+ presented by Maloku et al., 2023, generate sub-daily
+precipitation time series scenarios and evaluate the 4 models by
+calculating precipitation statistics.
 
-Next, an example of the generation of 5 precipitation time series
-scenarios with a duration of 100 years and a time step of 30 minutes is
-provided. The stochastic weather generator is made up of the GWEX model
-(Evin et al., 2018), which generates daily time series scenarios, and
-the MRC disaggregation model B+. The data set used to fit the models is
-an hourly dataset of mean areal precipitation observed in Switzerland.
+In the second part, we provide an example of the generation of long
+precipitation time series scenarios at sub-daily resolution. The
+stochastic weather generator is composed of the GWEX model (Evin et al.,
+2018), which generates daily precipitation time series scenarios, and
+the MRC disaggregation model B+.
 
-## Installation
+## 0. Installation
 
 Clear the entire workspace
 
@@ -49,64 +46,56 @@ library(tibble)
 library(tidyr)
 library(mev)
 library(purrr)
+library(ggplot2)
 library(GWEX)
 library(egpdIDF)
 library(disaggMRC)
 ```
 
-## Loading and preparation of example data sets
+## 1.1. Parameter estimation of 4 MRC models
 
-Load 10-minute and hourly time series of observed precipitation
+In this part, we estimate the parameters of the 4 MRC models presented
+by Maloku et al., 2023. The data required for this is a time series of
+precipitation at a resolution of 10 minutes. As an example, a 40-year
+precipitation time series observed at a station in Switzerland at a
+resolution of 10 minutes is provided.
 
 ``` r
-# Load an example of a 30-year precipitation time series observed at a station in Switzerland with a resolution of 10 minutes
+# Load data
 load("~/disaggMRC/data/PrecipData10min.rda")
-
-# Load an example of a 17-year hourly time series of mean areal precipitation observed in Switzerland
-load("~/disaggMRC/data/PrecipData60min.rda")
 ```
 
-Aggregate hourly observations to daily observations for GWEX model
-fitting
+Define some options required to fit MRC models. We propose tested
+values. If wanted, these values can be modified, but this should be done
+with caution.
 
 ``` r
-# Create a vector of daily precipitation observations
-vec_obs_daily_precip = RcppRoll::roll_sum(x = PrecipData60min$obs, n = 24, by = 24, fill = NA, align = "left", na.rm = F)[seq(1, by = 24, to = length(PrecipData60min$obs))]
-
-# Create a vector of daily dates from the vector of hourly dates
-vec_obs_daily_dates = as.Date(PrecipData60min$date[seq(1, by = 24, to = length(PrecipData60min$date))])
-```
-
-## Parameter estimation of the 4 MRC models presented by Maloku et al., 2023 and example of disaggregation by the 4 MRC models
-
-Parameter estimation
-
-``` r
-# List of some options needed for fitting the MRC model
-# We propose tested values. If wanted, these values can be modified, but this should be done with caution
-
 listOptionsMRC = list(I_min_fix = 0.01, # [mm/h]. For intensities above this value, the scaling model of alpha is constant. Recommended 0.01 mm/h. One might consider values between 0.001 and 0.1 mm/h. It corresponds to the I_zero of Eq. (2.13) Kaltrina Maloku's thesis
                       I_max_fix = 7, # [mm/h]. For intensities below this value, the scaling model of alpha is constant. Recommended 7 mm/h. One might consider values between 5 and 10 mm/h. It corresponds to the I_one of Eq. (2.13) Kaltrina Maloku's thesis
                       I_start_class = 0.001, # [mm/h]. This value is used to create intensity classes. Recommended 0.001 mm/h. If modified, do so with care. It should be positive and not exceed 0.1 mm/h
                       threshold_int = 0.002) # [mm/h]. A precipitation intensity threshold above which weights are ignored for the scaling models. Recommended 0.002 mm/h. Other accepted values may vary between 0 (no weights are ignored) and 0.1 mm/h
 ```
 
-Estimation of scaling parameters for models A and A+
+Estimate scaling parameters for models A and A+. The cascade weights are
+considered to depend on the temporal aggregation level and the intensity
+of the precipitation to be disaggregated. In model A, the precipitation
+asymmetry is not taken into account, whereas it is in model A+.
 
 ``` r
-# The cascade weights are considered to depend on the temporal aggregation level and the intensity of the precipitation to be disaggregated
-# In model A, the precipitation asymmetry is not taken into account, whereas it is in model A+
-
 Model_A = get_scaling_params_Intensity_aggLevel(vecPrecip = PrecipData10min$obs, # The high-resolution observed data needed for parameter estimation
                                                 vecDates = PrecipData10min$date, # The corresponding vector of dates
                                                 resVecPrecip = 10, # The temporal resolution in minutes
                                                 aggLevels = c(80,160,320,640,1280), # The aggregation levels at which MRC parameters are estimated
                                                 by_season = T, # Should the parameters be estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                                 listOptions = listOptionsMRC) # List of options for the MRC model
+```
 
-# The function "get_scaling_params_Intensity_aggLevel" returns a data frame of scaling parameters and a list of plots for showing empirical estimates and fitted scaling models
+The function “get_scaling_params_Intensity_aggLevel” returns a data
+frame of scaling parameters and a list of plots for showing empirical
+estimates and fitted scaling models.
 
-# Scaling parameters. Seasons "1", "2", "3", "4" correspond to "DJF", "MAM", "JJA", "SON"
+``` r
+# Scaling parameters
 Model_A$params
 
 # The non-zero subdivision probability Px
@@ -123,22 +112,26 @@ Model_A$fig_plots$Asymm_ratio
 Model_A$fig_plots$Asymm_mean
 ```
 
-Estimation of scaling parameters for models B and B+
+Estimate scaling parameters for models B and B+. The cascade weights are
+considered to depend only on the intensity of the precipitation to be
+disaggregated. In model B, the precipitation asymmetry is not taken into
+account, whereas it is in model B+.
 
 ``` r
-# The cascade weights are considered to depend on the intensity of the precipitation to be disaggregated
-# In model B, the precipitation asymmetry is not taken into account, whereas it is in model B+
-
 Model_B = get_scaling_params_Intensity(vecPrecip = PrecipData10min$obs, # The high-resolution observed data needed for parameter estimation
                                        vecDates = PrecipData10min$date, # vecDates = PrecipData10min$date, # The corresponding vector of dates
                                        resVecPrecip = 10, # The temporal resolution in minutes
                                        aggLevels = c(80,160,320,640,1280), # The aggregation levels at which MRC parameters are estimated
                                        by_season = T, # Should the parameters be estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                        listOption = listOptionsMRC) # List of options for the MRC model
-                                      
-# The function "get_scaling_params_Intensity" returns a data frame of scaling parameters and a list of plots for showing empirical estimates and fitted scaling models
+```
 
-# Scaling parameters. Seasons "1", "2", "3", "4" correspond to "DJF", "MAM", "JJA", "SON"
+The function “get_scaling_params_Intensity” returns a data frame of
+scaling parameters and a list of plots for showing empirical estimates
+and fitted scaling models.
+
+``` r
+# Scaling parameters
 Model_B$params
 
 # The non-zero subdivision probability Px 
@@ -154,137 +147,302 @@ Model_B$fig_plots$Asymm_ratio
 Model_B$fig_plots$Asymm_mean
 ```
 
-Get a coarse resolution precipitation time series (1280 minutes) that
-will be used as time series to be disaggregated
+## 1.2. Disaggregation and evaluation of the 4 MRC models
+
+In this part, we disaggregate a quasi-daily precipitation time series
+(1280-minute resolution) to 40-minute resolution with the 4 MRC models
+presented by Maloku et al., 2023. 30 precipitation time series scenarios
+are generated by each model. The precipitation time series at
+1280-minute resolution was obtained by aggregating the precipitation
+time series at 10-minute resolution provided in part 1.1.
+
+The precipitation time series at 10-minute resolution was also
+aggregated to 40-minute resolution for model evaluation. Precipitation
+statistics (e.g. standard deviation of precipitation amounts, proportion
+of wet steps, lag-1 autocorrelation, mean length of wet steps, 5- and
+20- year return levels) are calculated at 40- and 160-minute resolutions
+from observed and disaggregated precipitation time series scenarios.
 
 ``` r
-# Vector of dates, one date per day
-vecDates_target = unique(as.Date(PrecipData10min$date))
+# Load data aggregated to 40 minutes
+load("~/disaggMRC/data/PrecipData40min.rda")
 
-# Get 1280-minute indices
-indices_1280min = get_indices_center_1280(length(vecDates_target))
+# Load data aggregated to 1280 minutes
+load("~/disaggMRC/data/PrecipData1280min.rda")
 
-# Get an accumulated precipitation time series of 1280 minutes from the 10-minute time series 
-vecPrecip_target = sum_fixed_window(x = PrecipData10min$obs[indices_1280min], k = 128)
-```
-
-Disaggregation
-
-``` r
 # Define the number of generated scenarios
-nb_scenarios_mrc = 10
-
-# Define the name of the generation version
-i_version_ensemble = "v1"
+nb_scenarios_mrc = 30
 
 # Define the directory where to save files
-dir = "./scenarios_4_models_MRC"
+dir = "./disag_eval_4_models_MRC"
 
 # Create this directory
 dir.create(dir)
-
-# Define the directory name for generated precipitation scenarios
-dir_precip_scenarios = paste0(dir,"/",i_version_ensemble,"_prec_40min")
 ```
 
-Disaggregation using the MRC model A
+Disaggregation and evaluation of model A
 
 ``` r
-# Set a seed to be able to reproduce the results
-set.seed(2024)
+# Define a data frame that will hold all the statistics calculated from observed and disaggregated precipitation time series scenarios
+TAB_stats_model_A = NULL
 
+# Define a data frame that will hold observed and disaggregated precipitation time series scenarios at 40-minute resolution
+df_precip_40min_model_A = data.frame(date = PrecipData40min$date, obs = PrecipData40min$obs)
+
+# Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  one_scen_mrc_model_A = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = vecPrecip_target, # The vector of quasi-daily precipitations to be disaggregated
-                                                                    vecDates_target = vecDates_target, # The corresponding vector of dates
+  # Set seed for random generation  
+  set.seed(i_scen_mrc)
+  
+  # Generation of one scenario
+  one_scen_mrc_model_A = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = PrecipData1280min$obs, # The vector of quasi-daily precipitations to be disaggregated
+                                                                    vecDates_target = PrecipData1280min$date, # The corresponding vector of dates
                                                                     params_scaling = Model_A$params, # Parameters of the MRC model A
                                                                     by_season = T, # Are the parameters estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                                                     res_coarse_aggLevel = 1280, # The temporal resolution in minutes of the data to be disaggregated
                                                                     res_fine_aggLevel = 40, # The target temporal resolution in minutes of the high-resolution data
                                                                     asymmetry_option = F) # In the MRC model A, the disaggregation does not depend on the asymmetry model
   
-  # Save the 40-minute precipitation time series scenarios
-  saveRDS(one_scen_mrc_model_A, paste0(dir_precip_scenarios,"_MRC_model_A_scen_",i_scen_mrc,".RData"))
-    
-  # Remove from memory
-  rm(one_scen_mrc_model_A); gc()
+  # Add this scenario to the data frame
+  df_precip_40min_model_A[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_A
 }
+
+# Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model A
+saveRDS(df_precip_40min_model_A, paste0(dir, "/scenarios_prec_40min_model_A.RData"))
+
+# Add a column for the season and year, which are necessary for evaluation on a seasonal basis
+df_precip_40min_model_A = df_precip_40min_model_A %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
+
+# Calculate different precipitation statistics at 40-minutes resolution
+TAB_stats_40min_model_A = get_standard_stats_extremes(df_data = df_precip_40min_model_A %>% dplyr::filter(!is.na(Season))) %>%
+  mutate(resolution = 40, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Aggregate observed and disaggregated precipitation time series scenarios to 160-minute resolution
+df_precip_160min_model_A = RcppRoll::roll_sum(x = df_precip_40min_model_A[, c("obs", paste0("result.", 1:nb_scenarios_mrc))] %>% as.matrix(), n = 4, by = 4, fill = NA, align = "left", na.rm = F) %>% as.data.frame
+
+# Add date, season and year vectors
+df_precip_160min_model_A = cbind.data.frame(date = df_precip_40min_model_A[ , "date"],
+                                            Season = df_precip_40min_model_A[ , "Season"],
+                                            Year = df_precip_40min_model_A[ , "Year"], 
+                                            df_precip_160min_model_A)
+
+# Select only values that are not NA
+df_precip_160min_model_A = df_precip_160min_model_A[seq(1, to = nrow(df_precip_160min_model_A), by = 4), ]
+df_precip_160min_model_A = df_precip_160min_model_A %>% dplyr::filter(!is.na(Season))
+
+# Calculate different precipitation statistics at 160-minute resolution
+TAB_stats_160min_model_A = get_standard_stats_extremes(df_data = df_precip_160min_model_A) %>%
+  mutate(resolution = 160, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Combine precipitation statistics for 40- and 160-minute resolutions
+TAB_stats_model_A = rbind.data.frame(TAB_stats_40min_model_A, TAB_stats_160min_model_A)
+
+# Save precipitation statistics for model A
+saveRDS(TAB_stats_model_A, paste0(dir,"/stats_eval_model_A.RData"))
 ```
 
-Disaggregation using the MRC model A+
+Disaggregation and evaluation of model A+
 
 ``` r
-# Set a seed to be able to reproduce the results
-set.seed(2024)
+# Define a data frame that will hold all the statistics calculated from observed and disaggregated precipitation time series scenarios
+TAB_stats_model_A_plus = NULL
 
+# Define a data frame that will hold observed and disaggregated precipitation time series scenarios at 40-minute resolution
+df_precip_40min_model_A_plus = data.frame(date = PrecipData40min$date, obs = PrecipData40min$obs)
+
+# Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  one_scen_mrc_model_A_plus = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = vecPrecip_target, # The vector of quasi-daily precipitations to be disaggregated
-                                                                         vecDates_target = vecDates_target, # The corresponding vector of dates
+  # Set seed for random generation  
+  set.seed(i_scen_mrc)
+  
+  # Generation of one scenario
+  one_scen_mrc_model_A_plus = disaggregate_precip_MRC_Intensity_aggLevel(vecPrecip_target = PrecipData1280min$obs, # The vector of quasi-daily precipitations to be disaggregated
+                                                                         vecDates_target = PrecipData1280min$date, # The corresponding vector of dates
                                                                          params_scaling = Model_A$params, # Parameters of the MRC model A
                                                                          by_season = T, # Are the parameters estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                                                          res_coarse_aggLevel = 1280, # The temporal resolution in minutes of the data to be disaggregated
                                                                          res_fine_aggLevel = 40, # The target temporal resolution in minutes of the high-resolution data
                                                                          asymmetry_option = T) # In the MRC model A+, the disaggregation depends on the asymmetry model
   
-  # Save the 40-minute precipitation time series scenarios
-  saveRDS(one_scen_mrc_model_A_plus, paste0(dir_precip_scenarios,"_MRC_model_A_plus_scen_",i_scen_mrc,".RData"))
-    
-  # Remove from memory
-  rm(one_scen_mrc_model_A_plus); gc()
+  # Add this scenario to the data frame
+  df_precip_40min_model_A_plus[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_A_plus
 }
+
+# Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model A+
+saveRDS(df_precip_40min_model_A_plus, paste0(dir, "/scenarios_prec_40min_model_A_plus.RData"))
+
+# Add a column for the season and year, which are necessary for evaluation on a seasonal basis
+df_precip_40min_model_A_plus = df_precip_40min_model_A_plus %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
+
+# Calculate different precipitation statistics at 40-minutes resolution
+TAB_stats_40min_model_A_plus = get_standard_stats_extremes(df_data = df_precip_40min_model_A_plus %>% dplyr::filter(!is.na(Season))) %>%
+  mutate(resolution = 40, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Aggregate observed and disaggregated precipitation time series scenarios to 160-minute resolution
+df_precip_160min_model_A_plus = RcppRoll::roll_sum(x = df_precip_40min_model_A_plus[, c("obs", paste0("result.", 1:nb_scenarios_mrc))] %>% as.matrix(), n = 4, by = 4, fill = NA, align = "left", na.rm = F) %>% as.data.frame
+
+# Add date, season and year vectors
+df_precip_160min_model_A_plus = cbind.data.frame(date = df_precip_40min_model_A_plus[ , "date"],
+                                                 Season = df_precip_40min_model_A_plus[ , "Season"],
+                                                 Year = df_precip_40min_model_A_plus[ , "Year"], 
+                                                 df_precip_160min_model_A_plus)
+
+# Select only values that are not NA
+df_precip_160min_model_A_plus = df_precip_160min_model_A_plus[seq(1, to = nrow(df_precip_160min_model_A_plus), by = 4), ]
+df_precip_160min_model_A_plus = df_precip_160min_model_A_plus %>% dplyr::filter(!is.na(Season))
+
+# Calculate different precipitation statistics at 160-minute resolution
+TAB_stats_160min_model_A_plus = get_standard_stats_extremes(df_data = df_precip_160min_model_A_plus) %>%
+  mutate(resolution = 160, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Combine precipitation statistics for 40- and 160-minute resolutions
+TAB_stats_model_A_plus = rbind.data.frame(TAB_stats_40min_model_A_plus, TAB_stats_160min_model_A_plus)
+
+# Save precipitation statistics for model A+
+saveRDS(TAB_stats_model_A_plus, paste0(dir,"/stats_eval_model_A_plus.RData"))
 ```
 
-Disaggregation using the MRC model B
+Disaggregation and evaluation of model B
 
 ``` r
-# Set a seed to be able to reproduce the results
-set.seed(2024)
+# Define a data frame that will hold all the statistics calculated from observed and disaggregated precipitation time series scenarios
+TAB_stats_model_B = NULL
 
+# Define a data frame that will hold observed and disaggregated precipitation time series scenarios at 40-minute resolution
+df_precip_40min_model_B = data.frame(date = PrecipData40min$date, obs = PrecipData40min$obs)
+
+# Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  one_scen_mrc_model_B = disaggregate_precip_MRC_Intensity(vecPrecip_target = vecPrecip_target, # The vector of quasi-daily precipitations to be disaggregated
-                                                           vecDates_target = vecDates_target, # The corresponding vector of dates
+  # Set seed for random generation  
+  set.seed(i_scen_mrc)
+  
+  # Generation of one scenario
+  one_scen_mrc_model_B = disaggregate_precip_MRC_Intensity(vecPrecip_target = PrecipData1280min$obs, # The vector of quasi-daily precipitations to be disaggregated
+                                                           vecDates_target = PrecipData1280min$date, # The corresponding vector of dates
                                                            params_scaling = Model_B$params, # Parameters of the MRC model B
                                                            by_season = T, # Are the parameters estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                                            res_coarse_aggLevel = 1280, # The temporal resolution in minutes of the data to be disaggregated
                                                            res_fine_aggLevel = 40, # The target temporal resolution in minutes of the high-resolution data
                                                            asymmetry_option = F) # In the MRC model B, the disaggregation does not depend on the asymmetry model
-  
-  # Save the 40-minute precipitation time series scenarios
-  saveRDS(one_scen_mrc_model_B, paste0(dir_precip_scenarios,"_MRC_model_B_scen_",i_scen_mrc,".RData"))
-    
-  # Remove from memory
-  rm(one_scen_mrc_model_B); gc()
+
+  # Add this scenario to the data frame
+  df_precip_40min_model_B[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_B
 }
+
+# Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model B
+saveRDS(df_precip_40min_model_B, paste0(dir, "/scenarios_prec_40min_model_B.RData"))
+
+# Add a column for the season and year, which are necessary for evaluation on a seasonal basis
+df_precip_40min_model_B = df_precip_40min_model_B %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
+
+# Calculate different precipitation statistics at 40-minutes resolution
+TAB_stats_40min_model_B = get_standard_stats_extremes(df_data = df_precip_40min_model_B %>% dplyr::filter(!is.na(Season))) %>%
+  mutate(resolution = 40, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Aggregate observed and disaggregated precipitation time series scenarios to 160-minute resolution
+df_precip_160min_model_B = RcppRoll::roll_sum(x = df_precip_40min_model_B[, c("obs", paste0("result.", 1:nb_scenarios_mrc))] %>% as.matrix(), n = 4, by = 4, fill = NA, align = "left", na.rm = F) %>% as.data.frame
+
+# Add date, season and year vectors
+df_precip_160min_model_B = cbind.data.frame(date = df_precip_40min_model_B[ , "date"],
+                                            Season = df_precip_40min_model_B[ , "Season"],
+                                            Year = df_precip_40min_model_B[ , "Year"], 
+                                            df_precip_160min_model_B)
+
+# Select only values that are not NA
+df_precip_160min_model_B = df_precip_160min_model_B[seq(1, to = nrow(df_precip_160min_model_B), by = 4), ]
+df_precip_160min_model_B = df_precip_160min_model_B %>% dplyr::filter(!is.na(Season))
+
+# Calculate different precipitation statistics at 160-minute resolution
+TAB_stats_160min_model_B = get_standard_stats_extremes(df_data = df_precip_160min_model_B) %>%
+  mutate(resolution = 160, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Combine precipitation statistics for 40- and 160-minute resolutions
+TAB_stats_model_B = rbind.data.frame(TAB_stats_40min_model_B, TAB_stats_160min_model_B)
+
+# Save precipitation statistics for model B
+saveRDS(TAB_stats_model_B, paste0(dir,"/stats_eval_model_B.RData"))
 ```
 
-Disaggregation using the MRC model B+
+Disaggregation and evaluation of model B+
 
 ``` r
-# Set a seed to be able to reproduce the results
-set.seed(2024)
+# Define a data frame that will hold all the statistics calculated from observed and disaggregated precipitation time series scenarios
+TAB_stats_model_B_plus = NULL
 
+# Define a data frame that will hold observed and disaggregated precipitation time series scenarios at 40-minute resolution
+df_precip_40min_model_B_plus = data.frame(date = PrecipData40min$date, obs = PrecipData40min$obs)
+
+# Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  one_scen_mrc_model_B_plus = disaggregate_precip_MRC_Intensity(vecPrecip_target = vecPrecip_target, # The vector of quasi-daily precipitations to be disaggregated
-                                                                vecDates_target = vecDates_target, # The corresponding vector of dates
+  # Set seed for random generation  
+  set.seed(i_scen_mrc)
+  
+  # Generation of one scenario
+  one_scen_mrc_model_B_plus = disaggregate_precip_MRC_Intensity(vecPrecip_target = PrecipData1280min$obs, # The vector of quasi-daily precipitations to be disaggregated
+                                                                vecDates_target = PrecipData1280min$date, # The corresponding vector of dates
                                                                 params_scaling = Model_B$params, # Parameters of the MRC model B
                                                                 by_season = T, # Are the parameters estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis
                                                                 res_coarse_aggLevel = 1280, # The temporal resolution in minutes of the data to be disaggregated
                                                                 res_fine_aggLevel = 40, # The target temporal resolution in minutes of the high-resolution data
                                                                 asymmetry_option = T) # In the MRC model B+, the disaggregation depends on the asymmetry model
-                                                                
-  # Save the 40-minute precipitation time series scenarios
-  saveRDS(one_scen_mrc_model_B_plus, paste0(dir_precip_scenarios,"_MRC_model_B_plus_scen_",i_scen_mrc,".RData"))
-    
-  # Remove from memory
-  rm(one_scen_mrc_model_B_plus); gc()
+  
+  # Add this scenario to the data frame
+  df_precip_40min_model_B_plus[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_B_plus
 }
+
+# Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model B+
+saveRDS(df_precip_40min_model_B_plus, paste0(dir, "/scenarios_prec_40min_model_B_plus.RData"))
+
+# Add a column for the season and year, which are necessary for evaluation on a seasonal basis
+df_precip_40min_model_B_plus = df_precip_40min_model_B_plus %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
+
+# Calculate different precipitation statistics at 40-minutes resolution
+TAB_stats_40min_model_B_plus = get_standard_stats_extremes(df_data = df_precip_40min_model_B_plus %>% dplyr::filter(!is.na(Season))) %>%
+  mutate(resolution = 40, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Aggregate observed and disaggregated precipitation time series scenarios to 160-minute resolution
+df_precip_160min_model_B_plus = RcppRoll::roll_sum(x = df_precip_40min_model_B_plus[, c("obs", paste0("result.", 1:nb_scenarios_mrc))] %>% as.matrix(), n = 4, by = 4, fill = NA, align = "left", na.rm = F) %>% as.data.frame
+
+# Add date, season and year vectors
+df_precip_160min_model_B_plus = cbind.data.frame(date = df_precip_40min_model_B_plus[ , "date"],
+                                                 Season = df_precip_40min_model_B_plus[ , "Season"],
+                                                 Year = df_precip_40min_model_B_plus[ , "Year"], 
+                                                 df_precip_160min_model_B_plus)
+
+# Select only values that are not NA
+df_precip_160min_model_B_plus = df_precip_160min_model_B_plus[seq(1, to = nrow(df_precip_160min_model_B_plus), by = 4), ]
+df_precip_160min_model_B_plus = df_precip_160min_model_B_plus %>% dplyr::filter(!is.na(Season))
+
+# Calculate different precipitation statistics at 160-minute resolution
+TAB_stats_160min_model_B_plus = get_standard_stats_extremes(df_data = df_precip_160min_model_B_plus) %>%
+  mutate(resolution = 160, .after = "stat") %>% dplyr::filter(!is.na(Season))
+  
+# Combine precipitation statistics for 40- and 160-minute resolutions
+TAB_stats_model_B_plus = rbind.data.frame(TAB_stats_40min_model_B_plus, TAB_stats_160min_model_B_plus)
+
+# Save precipitation statistics for model B+
+saveRDS(TAB_stats_model_B_plus, paste0(dir,"/stats_eval_model_B_plus.RData"))
 ```
 
-## Example of the generation of 5 precipitation time series scenarios with a duration of 100 years and a time step of 30 minutes
+## 2. Long scenarios generation
 
-Define some preliminary objects
+In this part, we provide an example of the generation of 5 precipitation
+time series scenarios with a duration of 100 years and a resolution of
+30 minutes. The stochastic weather generator is made up of the GWEX
+model (Evin et al., 2018), which generates daily precipitation time
+series scenarios, and the MRC disaggregation model B+.
+
+The data set used to fit the MRC model B+ is a 17-year hourly time
+series of mean areal precipitation observed in Switzerland. This hourly
+precipitation time series was also aggregated to a daily resolution to
+fit the GWEX model.
 
 ``` r
-# Define the number and length of generated scenarios
+# Load data
+load("~/disaggMRC/data/MeanArealPrecipData60min.rda")
+load("~/disaggMRC/data/MeanArealPrecipData1440min.rda")
+
+# Define the number of generated scenarios
 nb_scenarios_gwex = 1
 nb_scenarios_mrc = 5
 
@@ -299,74 +457,61 @@ d.start = vecDatesSIM_GWEX[1]
 
 # Ending date of the generated time series
 d.end = rev(vecDatesSIM_GWEX)[1]
-```
-
-Define the directory and names of saved scenarios
-
-``` r
-# Define the name of the generation version
-i_version_ensemble = "v1"
-i_version_prec_1H = "mrc_v1"
-i_version_prec_24H = "gwex_v1"
 
 # Define the directory where to save files
-dir = "./scenarios_GWEX_MRC"
+dir = "./long_scenarios"
 
 # Create this directory
 dir.create(dir)
-
-# Define the directory name for generated precipitation scenarios
-dir_precip_scenarios = paste0(dir,"/",i_version_ensemble,"_prec_30min")
 ```
 
 Parameter estimation - MRC model B+
 
 ``` r
-# List of some options needed for fitting the MRC model
-# We propose tested values. If wanted, these values can be modified, but this should be done with caution
-
+# Define some options required to fit the MRC model B+
+# We propose tested values. If wanted, these values can be modified, but this should be done with caution.
 listOptionsMRC = list(I_min_fix = 0.01, # [mm/h]. For intensities above this value, the scaling model of alpha is constant. Recommended 0.01 mm/h. One might consider values between 0.001 and 0.1 mm/h. It corresponds to the I_zero of Eq. (2.13) Kaltrina Maloku's thesis
                       I_max_fix = 7, # [mm/h]. For intensities below this value, the scaling model of alpha is constant. Recommended 7 mm/h. One might consider values between 5 and 10 mm/h. It corresponds to the I_one of Eq. (2.13) Kaltrina Maloku's thesis
                       I_start_class = 0.001, # [mm/h]. This value is used to create intensity classes. Recommended 0.001 mm/h. If modified, do so with care. It should be positive and not exceed 0.1 mm/h
                       threshold_int = 0.002) # [mm/h]. A precipitation intensity threshold above which weights are ignored for the scaling models. Recommended 0.002 mm/h. Other accepted values may vary between 0 (no weights are ignored) and 0.1 mm/h
 
-params_scaling_MRC = get_scaling_params_Intensity(vecPrecip = PrecipData60min$obs, # The high-resolution observed data needed for parameter estimation
-                                                  vecDates = PrecipData60min$date, # The corresponding vector of dates
+# Estimate scaling parameters for the MRC model B+
+params_scaling_MRC = get_scaling_params_Intensity(vecPrecip = MeanArealPrecipData60min$obs, # The high-resolution observed data needed for parameter estimation
+                                                  vecDates = MeanArealPrecipData60min$date, # The corresponding vector of dates
                                                   resVecPrecip = 60, # The temporal resolution in minutes
                                                   aggLevels = 60*c(2,6,12,24), # The aggregation levels at which MRC parameters are estimated before fitting scaling models. Other pair values between 2 and 24 are allowed and may be considered in case of estimation problems
                                                   by_season = F, # Should the parameters be estimated on a seasonal basis? If F, the parameters are estimated on a monthly basis, if T on a seasonal basis. For a more robust estimation, but slightly lower performance when evaluated on a monthly basis, consider an estimation by season
                                                   listOptions = listOptionsMRC) # List of options for the MRC model
                                                   
-# Scaling parameters. Numbers 1 to 12 of the variable Season correspond to the 12 months from January to December
+# Scaling parameters
 params_scaling_MRC = params_scaling_MRC$params
-params_scaling_MRC
 ```
 
 Parameter estimation - GWEX model
 
 ``` r
 # Estimate the parameters of the EGDP using the IDF model of Haruna et al., 2023
-params_egpd = fit_EGPD_IDF(vec.precip = PrecipData60min$obs, # The vector of observed hourly precipitation
-                           vec.dates = PrecipData60min$date) # The corresponding vector of dates
+params_egpd = fit_EGPD_IDF(vec.precip = MeanArealPrecipData60min$obs, # The vector of observed hourly precipitation
+                           vec.dates = MeanArealPrecipData60min$date) # The corresponding vector of dates
 
-# Create GWEX object for precipitation
+# Create GWEX object
 myObsPrec = GwexObs(variable = "Prec", # The variable name
-                    date = vec_obs_daily_dates, # The vector of daily dates
-                    obs = as.matrix(vec_obs_daily_precip, ncol = 1)) # The daily observations as a one-column matrix
+                    date = as.Date(MeanArealPrecipData1440min$date), # The vector of daily dates
+                    obs = as.matrix(MeanArealPrecipData1440min$obs, ncol = 1)) # The daily observations as a one-column matrix
 
-# List of options for precipitation 
+# Define some options
 listOptionPrec = list(nLag = 2, # Order of the Markov chain for precipitation occurrences. Suggested value: 2. Other accepted values are 3 and 4. The length of wet/dry sequences might be better reproduced at 24h when 3 or 4, but be careful as parameter estimation may be less robust
                       th = 0, # Wet/dry days threshold for parameter estimation. Suggested value: 0 
                       isMAR = T, # Should we consider temporal autocorrelation? Suggested value: T
                       typeMargin = "EGPD") # The marginal distribution for positive daily precipitation amounts
 
-# Fit the GWEX model for precipitation
+# Fit the GWEX model
 myParPrec = fitGwexModel(objGwexObs = myObsPrec, # The object of observation data
                          parMargin = params_egpd, # Parameters of the EGPD previously estimated using the IDF model
                          listOption = listOptionPrec) # List of options for parameter estimation
 ```
 
-Generation of precipitation time series scenarios at 30-minute
+Generation of long precipitation time series scenarios at 30-minute
 resolution
 
 ``` r
@@ -383,7 +528,7 @@ for (i_scen_gwex in 1:nb_scenarios_gwex){
                                  prob.class = NULL, # Do not modify 
                                  objGwexSim = NULL) # Do not modify 
  
-  # Disaggregate the daily scenario generated 5 times using the MRC model B+
+  # Disaggregate 5 times the daily scenario generated using the MRC model B+
   for(i_scen_mrc in 1:nb_scenarios_mrc){
     one_scen_mrc = disaggregate_precip_MRC_Intensity(vecPrecip_target = mySimPrec@sim[,1,], # The vector of daily precipitations generated by the GWEX model
                                                      vecDates_target = vecDatesSIM_GWEX, # The corresponding vector of dates
@@ -393,11 +538,8 @@ for (i_scen_gwex in 1:nb_scenarios_gwex){
                                                      res_fine_aggLevel = 30, # The target temporal resolution in minutes of the high-resolution data
                                                      asymmetry_option = T) # In the MRC model B+, the disaggregation depends on the asymmetry model
     
-    # Save the 30-minute precipitation time series scenarios
-    saveRDS(one_scen_mrc, paste0(dir_precip_scenarios,"_scen_GWEX_",i_scen_gwex,"_MRC_",i_scen_mrc,".RData"))
-    
-    # Remove from memory
-    rm(one_scen_mrc); gc()
+    # Save each 30-minute precipitation time series scenario
+    saveRDS(one_scen_mrc, paste0(dir, "/scenarios_prec_30min_GWEX_",i_scen_gwex,"_MRC_B_plus_",i_scen_mrc,".RData"))
   }
 }
 ```

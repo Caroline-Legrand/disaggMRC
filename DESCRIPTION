@@ -1,6 +1,6 @@
 Package: disaggMRC
 Type: Package
-Date: 2025-05-16
+Date: 2025-05-20
 License: GPL-3
 Title: Temporal disaggregation of precipitation time series with Micro-canonical Random Cascade method
 Version: 2.0.0
@@ -8,7 +8,7 @@ Authors@R: c(person("Kaltrina", "Maloku", email="kaltrina.maloku@univ-grenoble-a
              person("Caroline", "Legrand", email="caroline.legrand@univ-grenoble-alpes.fr", role = "ctb"))
 Author: Kaltrina Maloku [aut, cre], Caroline Legrand [ctb]
 Maintainer: Caroline Legrand <caroline.legrand@univ-grenoble-alpes.fr>
-Imports: RcppRoll, lubridate, stats, dplyr, magrittr, pracma, robustbase, viridis, ggplot2, latex2exp, egpdIDF
+Imports: RcppRoll, lubridate, stats, dplyr, magrittr, pracma, robustbase, viridis, ggplot2, latex2exp, egpdIDF, lmomco
 Description: Micro-canonical Random Cascade is a method for temporal disaggregation of precipitation time series from coarse resolution (e.g. daily) 
              to fine resolution (e.g. 30 minutes). This package provides tools for parameter estimation of this model, estimation of scaling models, 
              with different options for dependency, and tools for disaggregation based on these parameters and dependencies. Possible dependency options 
@@ -20,6 +20,7 @@ Description: Micro-canonical Random Cascade is a method for temporal disaggregat
 Depends: R (>= 3.5.0)
 Encoding: UTF-8
 LazyData: true
+LazyDataCompression: xz
 RoxygenNote: 7.3.2
 Suggests: rmarkdown, testthat (>= 3.0.0)
 Config/testthat/edition: 3

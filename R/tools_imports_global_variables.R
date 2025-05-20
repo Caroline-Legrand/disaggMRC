@@ -8,5 +8,6 @@
 NULL
 
 globalVariables(c(".data", "H", "I_max", "I_min", "Intensity", "Intensity_min", "K", "P01", "P10", "Precip", "Px", "Season", "Sigma", "Weight", "a_mu", 
-                  "a_sigma", "aggLevel", "alpha", "alpha0", "alpha_star", "alpha_t", "b_mu", "b_sigma", "bdc", "c0", "c1", "c2", "fit", "labeller", "lambda", "m", 
-                  "mu", "n.y", "nu", "ones", "p01", "p10", "param", "params_px", "phi", "pred_mu", "pred_sigma", "recode", "rnd_unif", "value", "zIndex", "zeros"))
+                  "a_sigma", "aggLevel", "alpha", "alpha0", "alpha_star", "alpha_t", "b_mu", "b_sigma", "bdc", "c0", "c1", "c2", "fit", "labeller", "lambda", 
+                  "m", "mu", "n.y", "nu", "ones", "p01", "p10", "param", "params_px", "phi", "pred_mu", "pred_sigma", "recode", "rnd_unif", "value", "zIndex", 
+                  "zeros", "MAE", "Year", "add_column", "contains", "get_autocorrelation", "na.omit", "obs", "qq_emp", "quantile", "sd", "approx"))

@@ -5,7 +5,7 @@
 \alias{PrecipData10min}
 \title{Precipitation data set observed at 10-minute resolution}
 \format{
-A data frame with 1577952 rows and 2 variables:
+A data frame of 2 variables:
 \describe{
   \item{obs}{Precipitation amount, in mm}
   \item{date}{Date, in POSIXct format}
@@ -15,7 +15,7 @@ A data frame with 1577952 rows and 2 variables:
 PrecipData10min
 }
 \description{
-Example of a 30-year precipitation time series observed at a station in Switzerland with a resolution of 10 minutes
+Example of a 40-year precipitation time series observed at a station in Switzerland with a resolution of 10 minutes
 }
 \references{
 Maloku, K., Hingray, B., and Evin, G. (2023).

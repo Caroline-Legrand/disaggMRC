@@ -1,8 +1,8 @@
 #' @title Precipitation data set observed at 10-minute resolution
 #'
-#' @description Example of a 30-year precipitation time series observed at a station in Switzerland with a resolution of 10 minutes
+#' @description Example of a 40-year precipitation time series observed at a station in Switzerland with a resolution of 10 minutes
 #' 
-#' @format A data frame with 1577952 rows and 2 variables:
+#' @format A data frame of 2 variables:
 #' \describe{
 #'   \item{obs}{Precipitation amount, in mm}
 #'   \item{date}{Date, in POSIXct format}
