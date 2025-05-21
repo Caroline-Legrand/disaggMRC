@@ -21,22 +21,38 @@ the MRC disaggregation model B+.
 
 ## 0. Installation
 
-Clear the entire workspace
+R, RStudio and Rtools have to be installed. The Rtools version has to
+correspond to the R version (version 4.4.1 works, while version 4.5
+seems not to). Launch RStudio and start by cleaning the entire
+workspace.
 
 ``` r
 rm(list=ls())
 ```
 
-Install and load the required packages
+Then install and load the required packages.
 
 ``` r
 # Packages should be installed only once
 if(F){
+  install.packages("devtools")
+  install.packages("lubridate")
+  install.packages("dplyr")
+  install.packages("stats")
+  install.packages("pracma")
+  install.packages("RcppRoll")
+  install.packages("tibble")
+  install.packages("tidyr")
+  install.packages("mev")
+  install.packages("purrr")
+  install.packages("ggplot2")
+  
   devtools::install_github("guillaumeevin/GWEX")
   devtools::install_github("drabuharuna/egpdIDF")
   devtools::install_github("Caroline-Legrand/disaggMRC")
 }
 
+library(devtools)
 library(lubridate)
 library(dplyr)
 library(stats)
@@ -95,21 +111,27 @@ frame of scaling parameters and a list of plots for showing empirical
 estimates and fitted scaling models.
 
 ``` r
-# Scaling parameters
-Model_A$params
+# Define the directory where to save files
+dir = "./param_4_models_MRC"
 
-# The non-zero subdivision probability Px
-Model_A$fig_plots$Px_aggLevel_intensity
+# Create this directory
+dir.create(dir)
 
-# The two components h and g of the alpha parameter of the Beta distribution: alpha(tau, I) = h(tau)*g(I)
-Model_A$fig_plots$Alpha_aggLevel
-Model_A$fig_plots$Alpha_star_aggLevel_intensity
+# Save scaling parameters
+saveRDS(Model_A$params, paste0(dir,"/params_model_A.RData"))
 
-# The probability asymmetry ratio phi
-Model_A$fig_plots$Asymm_ratio
+# Save the plot of the non-zero subdivision probability Px
+ggsave(paste0(dir,"/Px_model_A.png"), Model_A$fig_plots$Px_aggLevel_intensity)
 
-# The mean of the cascade weights
-Model_A$fig_plots$Asymm_mean
+# Save the plots of the two components h and g of the alpha parameter of the Beta distribution: alpha(tau, I) = h(tau)*g(I)
+ggsave(paste0(dir,"/h_model_A.png"), Model_A$fig_plots$Alpha_aggLevel)
+ggsave(paste0(dir,"/g_model_A.png"), Model_A$fig_plots$Alpha_star_aggLevel_intensity)
+
+# Save the plot of the probability asymmetry ratio phi
+ggsave(paste0(dir,"/phi_model_A.png"), Model_A$fig_plots$Asymm_ratio)
+
+# Save the plot of the mean of the cascade weights
+ggsave(paste0(dir,"/mean_model_A.png"), Model_A$fig_plots$Asymm_mean)
 ```
 
 Estimate scaling parameters for models B and B+. The cascade weights are
@@ -131,20 +153,20 @@ scaling parameters and a list of plots for showing empirical estimates
 and fitted scaling models.
 
 ``` r
-# Scaling parameters
-Model_B$params
+# Save scaling parameters
+saveRDS(Model_B$params, paste0(dir,"/params_model_B.RData"))
 
-# The non-zero subdivision probability Px 
-Model_B$fig_plots$Px_intensity
+# Save the plot of the non-zero subdivision probability Px
+ggsave(paste0(dir,"/Px_model_B.png"), Model_B$fig_plots$Px_intensity)
 
-# The alpha parameter of the Beta distribution
-Model_B$fig_plots$Alpha_intensity
+# Save the plot of the alpha parameter of the Beta distribution
+ggsave(paste0(dir,"/alpha_model_B.png"), Model_B$fig_plots$Alpha_intensity)
 
-# The probability asymmetry ratio phi
-Model_B$fig_plots$Asymm_ratio
+# Save the plot of the probability asymmetry ratio phi
+ggsave(paste0(dir,"/phi_model_B.png"), Model_B$fig_plots$Asymm_ratio)
 
-# The mean of the cascade weights
-Model_B$fig_plots$Asymm_mean
+# Save the plot of the mean of the cascade weights
+ggsave(paste0(dir,"/mean_model_B.png"), Model_B$fig_plots$Asymm_mean)
 ```
 
 ## 1.2. Disaggregation and evaluation of the 4 MRC models
@@ -204,11 +226,11 @@ for(i_scen_mrc in 1:nb_scenarios_mrc){
                                                                     asymmetry_option = F) # In the MRC model A, the disaggregation does not depend on the asymmetry model
   
   # Add this scenario to the data frame
-  df_precip_40min_model_A[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_A
+  df_precip_40min_model_A[, paste0("result.",i_scen_mrc)] = one_scen_mrc_model_A
 }
 
 # Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model A
-saveRDS(df_precip_40min_model_A, paste0(dir, "/scenarios_prec_40min_model_A.RData"))
+saveRDS(df_precip_40min_model_A, paste0(dir,"/scenarios_prec_40min_model_A.RData"))
 
 # Add a column for the season and year, which are necessary for evaluation on a seasonal basis
 df_precip_40min_model_A = df_precip_40min_model_A %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
@@ -265,11 +287,11 @@ for(i_scen_mrc in 1:nb_scenarios_mrc){
                                                                          asymmetry_option = T) # In the MRC model A+, the disaggregation depends on the asymmetry model
   
   # Add this scenario to the data frame
-  df_precip_40min_model_A_plus[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_A_plus
+  df_precip_40min_model_A_plus[, paste0("result.",i_scen_mrc)] = one_scen_mrc_model_A_plus
 }
 
 # Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model A+
-saveRDS(df_precip_40min_model_A_plus, paste0(dir, "/scenarios_prec_40min_model_A_plus.RData"))
+saveRDS(df_precip_40min_model_A_plus, paste0(dir,"/scenarios_prec_40min_model_A_plus.RData"))
 
 # Add a column for the season and year, which are necessary for evaluation on a seasonal basis
 df_precip_40min_model_A_plus = df_precip_40min_model_A_plus %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
@@ -326,11 +348,11 @@ for(i_scen_mrc in 1:nb_scenarios_mrc){
                                                            asymmetry_option = F) # In the MRC model B, the disaggregation does not depend on the asymmetry model
 
   # Add this scenario to the data frame
-  df_precip_40min_model_B[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_B
+  df_precip_40min_model_B[, paste0("result.",i_scen_mrc)] = one_scen_mrc_model_B
 }
 
 # Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model B
-saveRDS(df_precip_40min_model_B, paste0(dir, "/scenarios_prec_40min_model_B.RData"))
+saveRDS(df_precip_40min_model_B, paste0(dir,"/scenarios_prec_40min_model_B.RData"))
 
 # Add a column for the season and year, which are necessary for evaluation on a seasonal basis
 df_precip_40min_model_B = df_precip_40min_model_B %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
@@ -387,11 +409,11 @@ for(i_scen_mrc in 1:nb_scenarios_mrc){
                                                                 asymmetry_option = T) # In the MRC model B+, the disaggregation depends on the asymmetry model
   
   # Add this scenario to the data frame
-  df_precip_40min_model_B_plus[, paste0("result.", i_scen_mrc)] = one_scen_mrc_model_B_plus
+  df_precip_40min_model_B_plus[, paste0("result.",i_scen_mrc)] = one_scen_mrc_model_B_plus
 }
 
 # Save observed and disaggregated precipitation time series scenarios at 40-minute resolution for model B+
-saveRDS(df_precip_40min_model_B_plus, paste0(dir, "/scenarios_prec_40min_model_B_plus.RData"))
+saveRDS(df_precip_40min_model_B_plus, paste0(dir,"/scenarios_prec_40min_model_B_plus.RData"))
 
 # Add a column for the season and year, which are necessary for evaluation on a seasonal basis
 df_precip_40min_model_B_plus = df_precip_40min_model_B_plus %>% mutate(Season = month2season(lubridate::month(date)), Year = year(date))
@@ -469,7 +491,7 @@ Parameter estimation - MRC model B+
 
 ``` r
 # Define some options required to fit the MRC model B+
-# We propose tested values. If wanted, these values can be modified, but this should be done with caution.
+# We propose tested values. If wanted, these values can be modified, but this should be done with caution
 listOptionsMRC = list(I_min_fix = 0.01, # [mm/h]. For intensities above this value, the scaling model of alpha is constant. Recommended 0.01 mm/h. One might consider values between 0.001 and 0.1 mm/h. It corresponds to the I_zero of Eq. (2.13) Kaltrina Maloku's thesis
                       I_max_fix = 7, # [mm/h]. For intensities below this value, the scaling model of alpha is constant. Recommended 7 mm/h. One might consider values between 5 and 10 mm/h. It corresponds to the I_one of Eq. (2.13) Kaltrina Maloku's thesis
                       I_start_class = 0.001, # [mm/h]. This value is used to create intensity classes. Recommended 0.001 mm/h. If modified, do so with care. It should be positive and not exceed 0.1 mm/h
@@ -539,7 +561,7 @@ for (i_scen_gwex in 1:nb_scenarios_gwex){
                                                      asymmetry_option = T) # In the MRC model B+, the disaggregation depends on the asymmetry model
     
     # Save each 30-minute precipitation time series scenario
-    saveRDS(one_scen_mrc, paste0(dir, "/scenarios_prec_30min_GWEX_",i_scen_gwex,"_MRC_B_plus_",i_scen_mrc,".RData"))
+    saveRDS(one_scen_mrc, paste0(dir,"/scenarios_prec_30min_GWEX_",i_scen_gwex,"_MRC_B_plus_",i_scen_mrc,".RData"))
   }
 }
 ```

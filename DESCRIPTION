@@ -1,6 +1,6 @@
 Package: disaggMRC
 Type: Package
-Date: 2025-05-20
+Date: 2025-05-21
 License: GPL-3
 Title: Temporal disaggregation of precipitation time series with Micro-canonical Random Cascade method
 Version: 2.0.0
