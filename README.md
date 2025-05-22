@@ -154,7 +154,7 @@ Model_B = get_scaling_params_Intensity(vecPrecip = PrecipData10min$obs, # The hi
 ```
 
 The function “get_scaling_params_Intensity” returns a data frame of
-scaling parameters for each seasonn and a list of plots for showing
+scaling parameters for each season and a list of plots for showing
 empirical estimates and fitted scaling models.
 
 ``` r
