@@ -68,6 +68,10 @@ library(egpdIDF)
 library(disaggMRC)
 ```
 
+Please note that the data used in the following were downloaded when the
+disaggMRC package was installed, but are not visible in the RStudio
+environment.
+
 ## 1.1. Parameter estimation of 4 MRC models
 
 In this part, we estimate the parameters of the 4 MRC models presented
@@ -77,8 +81,8 @@ precipitation time series observed at a station in Switzerland at a
 resolution of 10 minutes is provided.
 
 ``` r
-# Load data
-load("~/disaggMRC/data/PrecipData10min.rda")
+# Show the first lines of the 10-minute precipitation dataset
+head(PrecipData10min)
 ```
 
 Define some options required to fit MRC models. We propose tested
@@ -92,10 +96,11 @@ listOptionsMRC = list(I_min_fix = 0.01, # [mm/h]. For intensities above this val
                       threshold_int = 0.002) # [mm/h]. A precipitation intensity threshold above which weights are ignored for the scaling models. Recommended 0.002 mm/h. Other accepted values may vary between 0 (no weights are ignored) and 0.1 mm/h
 ```
 
-Estimate scaling parameters for models A and A+. The cascade weights are
-considered to depend on the temporal aggregation level and the intensity
-of the precipitation to be disaggregated. In model A, the precipitation
-asymmetry is not taken into account, whereas it is in model A+.
+Estimate scaling parameters for models A and A+ for each season. The
+cascade weights are considered to depend on the temporal aggregation
+level and the intensity of the precipitation to be disaggregated. In
+model A, the precipitation asymmetry is not taken into account, whereas
+it is in model A+.
 
 ``` r
 Model_A = get_scaling_params_Intensity_aggLevel(vecPrecip = PrecipData10min$obs, # The high-resolution observed data needed for parameter estimation
@@ -107,8 +112,8 @@ Model_A = get_scaling_params_Intensity_aggLevel(vecPrecip = PrecipData10min$obs,
 ```
 
 The function “get_scaling_params_Intensity_aggLevel” returns a data
-frame of scaling parameters and a list of plots for showing empirical
-estimates and fitted scaling models.
+frame of scaling parameters for each season and a list of plots for
+showing empirical estimates and fitted scaling models.
 
 ``` r
 # Define the directory where to save files
@@ -134,10 +139,10 @@ ggsave(paste0(dir,"/phi_model_A.png"), Model_A$fig_plots$Asymm_ratio)
 ggsave(paste0(dir,"/mean_model_A.png"), Model_A$fig_plots$Asymm_mean)
 ```
 
-Estimate scaling parameters for models B and B+. The cascade weights are
-considered to depend only on the intensity of the precipitation to be
-disaggregated. In model B, the precipitation asymmetry is not taken into
-account, whereas it is in model B+.
+Estimate scaling parameters for models B and B+ for each season. The
+cascade weights are considered to depend only on the intensity of the
+precipitation to be disaggregated. In model B, the precipitation
+asymmetry is not taken into account, whereas it is in model B+.
 
 ``` r
 Model_B = get_scaling_params_Intensity(vecPrecip = PrecipData10min$obs, # The high-resolution observed data needed for parameter estimation
@@ -149,8 +154,8 @@ Model_B = get_scaling_params_Intensity(vecPrecip = PrecipData10min$obs, # The hi
 ```
 
 The function “get_scaling_params_Intensity” returns a data frame of
-scaling parameters and a list of plots for showing empirical estimates
-and fitted scaling models.
+scaling parameters for each seasonn and a list of plots for showing
+empirical estimates and fitted scaling models.
 
 ``` r
 # Save scaling parameters
@@ -182,17 +187,18 @@ The precipitation time series at 10-minute resolution was also
 aggregated to 40-minute resolution for model evaluation. Precipitation
 statistics (e.g. standard deviation of precipitation amounts, proportion
 of wet steps, lag-1 autocorrelation, mean length of wet steps, 5- and
-20- year return levels) are calculated at 40- and 160-minute resolutions
-from observed and disaggregated precipitation time series scenarios.
+20- year return levels) are calculated for each season at 40- and
+160-minute resolutions from observed and disaggregated precipitation
+time series scenarios.
 
 ``` r
-# Load data aggregated to 40 minutes
-load("~/disaggMRC/data/PrecipData40min.rda")
+# Show the first lines of the 40-minute aggregated precipitation dataset
+head(PrecipData40min)
 
-# Load data aggregated to 1280 minutes
-load("~/disaggMRC/data/PrecipData1280min.rda")
+# Show the first lines of the 1280-minute aggregated precipitation dataset
+head(PrecipData1280min)
 
-# Define the number of generated scenarios
+# Define the number of scenarios to be generated
 nb_scenarios_mrc = 30
 
 # Define the directory where to save files
@@ -213,7 +219,7 @@ df_precip_40min_model_A = data.frame(date = PrecipData40min$date, obs = PrecipDa
 
 # Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  # Set seed for random generation  
+  # Set a seed for random generation to be able to reproduce the results
   set.seed(i_scen_mrc)
   
   # Generation of one scenario
@@ -274,7 +280,7 @@ df_precip_40min_model_A_plus = data.frame(date = PrecipData40min$date, obs = Pre
 
 # Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  # Set seed for random generation  
+  # Set a seed for random generation to be able to reproduce the results
   set.seed(i_scen_mrc)
   
   # Generation of one scenario
@@ -335,7 +341,7 @@ df_precip_40min_model_B = data.frame(date = PrecipData40min$date, obs = PrecipDa
 
 # Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  # Set seed for random generation  
+  # Set a seed for random generation to be able to reproduce the results
   set.seed(i_scen_mrc)
   
   # Generation of one scenario
@@ -396,7 +402,7 @@ df_precip_40min_model_B_plus = data.frame(date = PrecipData40min$date, obs = Pre
 
 # Disaggregation of resolution 1280 minutes to 40 minutes
 for(i_scen_mrc in 1:nb_scenarios_mrc){
-  # Set seed for random generation  
+  # Set a seed for random generation to be able to reproduce the results
   set.seed(i_scen_mrc)
   
   # Generation of one scenario
@@ -454,17 +460,17 @@ time series scenarios with a duration of 100 years and a resolution of
 model (Evin et al., 2018), which generates daily precipitation time
 series scenarios, and the MRC disaggregation model B+.
 
-The data set used to fit the MRC model B+ is a 17-year hourly time
-series of mean areal precipitation observed in Switzerland. This hourly
+The dataset used to fit the MRC model B+ is a 17-year hourly time series
+of mean areal precipitation observed in Switzerland. This hourly
 precipitation time series was also aggregated to a daily resolution to
 fit the GWEX model.
 
 ``` r
-# Load data
-load("~/disaggMRC/data/MeanArealPrecipData60min.rda")
-load("~/disaggMRC/data/MeanArealPrecipData1440min.rda")
+# Show the first lines of the hourly (60 minutes) and daily (1440 minutes) mean areal precipitation datasets
+head(MeanArealPrecipData60min)
+head(MeanArealPrecipData1440min)
 
-# Define the number of generated scenarios
+# Define the number of scenarios to be generated
 nb_scenarios_gwex = 1
 nb_scenarios_mrc = 5
 
@@ -497,7 +503,7 @@ listOptionsMRC = list(I_min_fix = 0.01, # [mm/h]. For intensities above this val
                       I_start_class = 0.001, # [mm/h]. This value is used to create intensity classes. Recommended 0.001 mm/h. If modified, do so with care. It should be positive and not exceed 0.1 mm/h
                       threshold_int = 0.002) # [mm/h]. A precipitation intensity threshold above which weights are ignored for the scaling models. Recommended 0.002 mm/h. Other accepted values may vary between 0 (no weights are ignored) and 0.1 mm/h
 
-# Estimate scaling parameters for the MRC model B+
+# Estimate scaling parameters for each month for the MRC model B+
 params_scaling_MRC = get_scaling_params_Intensity(vecPrecip = MeanArealPrecipData60min$obs, # The high-resolution observed data needed for parameter estimation
                                                   vecDates = MeanArealPrecipData60min$date, # The corresponding vector of dates
                                                   resVecPrecip = 60, # The temporal resolution in minutes
@@ -512,11 +518,11 @@ params_scaling_MRC = params_scaling_MRC$params
 Parameter estimation - GWEX model
 
 ``` r
-# Estimate the parameters of the EGDP using the IDF model of Haruna et al., 2023
+# Estimate the parameters of the EGDP for daily data using the IDF model of Haruna et al., 2023 estimated from hourly data
 params_egpd = fit_EGPD_IDF(vec.precip = MeanArealPrecipData60min$obs, # The vector of observed hourly precipitation
                            vec.dates = MeanArealPrecipData60min$date) # The corresponding vector of dates
 
-# Create GWEX object
+# Create a GWEX object required to fit the GWEX model
 myObsPrec = GwexObs(variable = "Prec", # The variable name
                     date = as.Date(MeanArealPrecipData1440min$date), # The vector of daily dates
                     obs = as.matrix(MeanArealPrecipData1440min$obs, ncol = 1)) # The daily observations as a one-column matrix
@@ -537,7 +543,7 @@ Generation of long precipitation time series scenarios at 30-minute
 resolution
 
 ``` r
-# Set a seed to be able to reproduce the results
+# Set a seed for random generation to be able to reproduce the results
 set.seed(2024)
 
 for (i_scen_gwex in 1:nb_scenarios_gwex){
@@ -550,7 +556,7 @@ for (i_scen_gwex in 1:nb_scenarios_gwex){
                                  prob.class = NULL, # Do not modify 
                                  objGwexSim = NULL) # Do not modify 
  
-  # Disaggregate 5 times the daily scenario generated using the MRC model B+
+  # Disaggregate the daily scenario generated by the GWEX model 5 times using the MRC model B+
   for(i_scen_mrc in 1:nb_scenarios_mrc){
     one_scen_mrc = disaggregate_precip_MRC_Intensity(vecPrecip_target = mySimPrec@sim[,1,], # The vector of daily precipitations generated by the GWEX model
                                                      vecDates_target = vecDatesSIM_GWEX, # The corresponding vector of dates
